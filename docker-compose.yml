@@ -43,7 +43,7 @@ services:
       volumes:
         - "./n8n-data:/data/"
       environment:
-        - DB_TYPE=postgresdb
+        - DB_TYPE=${DB_TYPE}
         - DB_POSTGRESDB_DATABASE=${DB_POSTGRESDB_DATABASE}
         - DB_POSTGRESDB_HOST=${DB_POSTGRESDB_HOST}
         - DB_POSTGRESDB_PORT=${DB_POSTGRESDB_PORT}
