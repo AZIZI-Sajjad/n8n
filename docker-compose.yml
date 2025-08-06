@@ -1,106 +1,44 @@
-# docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql config
-# docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql up
-# docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql down
-# docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql up -d
-# docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql logs -f
+# # docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql config
+# # docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql up
+# # docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql down
+# # docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql up -d
+# # docker compose --file /var/docker/docker-compose.d/n8n/docker-compose.yml --project-name n8n-postgresql logs -f
 
-version: "3.7"
+version: "3.8"
 services:
   postgres:
-    # image: "postgres:latest"
     build:
       context: .
       dockerfile: ${POSTGRES_DOKCER_FILE}
-    # image: vault-postgres-nginx-postgres
+    container_name: ${POSTGRES_CONTAINER_HOST_NAME}
+    hostname: ${POSTGRES_CONTAINER_HOST_NAME}
     env_file:
-    - .env
-    container_name: '${POSTGRES_CONTAINER_HOST_NAME}' #"container-postgres"
-    hostname: '${POSTGRES_CONTAINER_HOST_NAME}' #"container-postgres"
-    restart: always
+      - .env
+    restart: unless-stopped
     volumes:
-      - "./postgres-data:/var/lib/postgresql/data"
-      - "./init-postgres.sh:/docker-entrypoint-initdb.d/init-user-db.sh"
-      - "/etc/localtime:/etc/localtime:ro"
-    environment:
-      - "POSTGRES_DB=${POSTGRES_DB}"
-      - PGDATA=${PGDATA}
-    # ports:
-    #  - "3306:3306"
+      - ./postgres-data:/var/lib/postgresql/data
     networks:
       net-bridge-n8n-postgres:
-        ipv4_address: '${POSTGRES_CONTAINER_IP}' # "172.64.64.201"
+        ipv4_address: '${POSTGRES_CONTAINER_IP}'
 
   n8n:
-      build:
-        context: .
-        dockerfile: ${N8N_DOKCER_FILE}
-      # image: vault-postgres-nginx-n8n "n8n/server:latest"
-      env_file:
-        - ".env"
-      container_name: '${N8N_CONTAINER_HOST_NAME}' # "container-n8n"
-      hostname: '${N8N_CONTAINER_HOST_NAME}' # "container-n8n"
-      restart: always
-      volumes:
-        - "./n8n-data:/data/"
-      environment:
-        - DB_TYPE=${DB_TYPE}
-        - DB_POSTGRESDB_DATABASE=${DB_POSTGRESDB_DATABASE}
-        - DB_POSTGRESDB_HOST=${DB_POSTGRESDB_HOST}
-        - DB_POSTGRESDB_PORT=${DB_POSTGRESDB_PORT}
-        - DB_POSTGRESDB_USER=${DB_POSTGRESDB_USER}
-        - DB_POSTGRESDB_SCHEMA=${POSTGRES_SCHEMA}
-        - DB_POSTGRESDB_PASSWORD=${DB_POSTGRESDB_PASSWORD}
-        - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS}
-        - N8N_SECURE_COOKIE=false
-      ports:
+    build:
+      context: .
+      dockerfile: ${N8N_DOKCER_FILE}
+    container_name: ${N8N_CONTAINER_HOST_NAME}
+    hostname: ${N8N_CONTAINER_HOST_NAME}
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
       - "${N8N_PORT}:${N8N_PORT}"
-      depends_on:
-        - postgres
-      networks:
-        net-bridge-n8n-postgres:
-          ipv4_address: '${N8N_CONTAINER_IP}' # "172.64.64.202"
-
-  # nginx-proxy: 
-  #   build:
-  #     # Read DockerFile in Current Folder
-  #     context: .
-  #     # Dockerfile's name
-  #     dockerfile: ${NGINX_DOCKER_FILE}
-  #     # image: vault-postgres-nginx-nginx-proxy
-  #   # Container's name 
-  #   container_name: '${NGINX_CONTAINER_HOST_NAME}' # container-nginx-proxy
-  #   # Container's HostName
-  #   hostname: '${NGINX_CONTAINER_HOST_NAME}' # container-nginx-proxy
-  #   restart: always
-  #   env_file:
-  #   - .env
-  #   volumes:
-  #   - "./nginx-conf/default.conf:/etc/nginx/conf.d/default.conf"
-  #   - "./nginx-conf/page-not-found.html:/var/www/html/page-not-found.html"
-  #   - "./nginx-conf/includes/:/etc/nginx/includes/"
-  #   - "./certs/:/etc/ssl/certs/nginx/"
-  #   depends_on:
-  #   - n8n
-  #   # Tag of image created by this srvice
-  #   # image: nginx-proxy:v1
-  #   networks:
-  #     # Container's Network
-  #     net-macvlan-nginx:
-  #       # Container's IP
-  #       ipv4_address: '${NGINX_CONTAINER_IP_MACVLAN}' # "192.168.64.200"
-  #     # Container's Second Network
-  #     net-bridge-n8n-postgres:
-  #       # Container's Seconde IP
-  #       ipv4_address: '${NGINX_CONTAINER_IP}' # "172.64.64.200"
-
-
-
-volumes:
-  postgres_vol: {}
-  n8n_vol: {}
-  # nginx_vol: {}
-
-
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+    depends_on:
+      - postgres
+    networks:
+      net-bridge-n8n-postgres:
+        ipv4_address: '${N8N_CONTAINER_IP}'
 
 networks:
   net-bridge-n8n-postgres:
@@ -108,17 +46,5 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: '${BRIDGE_NETWORK_SUBNET}' # "172.64.64.0/24"
-          gateway: '${BRIDGE_NETWORK_GW}' # "172.64.64.1"
-  
-  # net-macvlan-nginx:
-  #   # name: net-macvlan-nginx
-  #   driver: macvlan
-  #   driver_opts: 
-  #     parent: '${MACVLAN_HOST_PARENT_INTERFACE}' # enp0s3
-  #   ipam:
-  #     # driver: default
-  #     config:
-  #       - subnet: '${MACVLAN_NETWORK_SUBNET_RANGE}' # "192.168.64.0/24"
-  #         ip_range: '${MACVLAN_NETWORK_SUBNET_RANGE}' # "192.168.64.0/24"
-  #         gateway: '${MACVLAN_NETWORK_GW}' # "192.168.64.254"
+        - subnet: '${BRIDGE_NETWORK_SUBNET}'
+          gateway: '${BRIDGE_NETWORK_GW}'
